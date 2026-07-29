@@ -1,0 +1,12 @@
+[project]
+name = "ch01-fastapi-for-java"
+version = "0.1.0"
+description = "Ch.1 verified example — Spring Boot idioms mapped to FastAPI"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.140.13",
+    "google-genai>=2.14.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.2",
+    "uvicorn[standard]>=0.52.0",
+]

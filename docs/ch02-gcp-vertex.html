@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch.2 — GCP · Vertex AI 기반 | GenAI FDE Handbook</title>
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+
+<header class="masthead">
+  <span class="mark">GenAI FDE Handbook</span>
+  <span class="sep"></span>
+  <a href="index.html">← 목차</a>
+  <button id="themeToggle" type="button">DARK</button>
+</header>
+
+<div class="wrap">
+
+<div class="chapter-head">
+  <div class="kicker">Chapter 02 · Phase 0 · W2</div>
+  <h1>GCP · Vertex AI 기반</h1>
+  <p class="sub">Google JD의 최소 자격 ③이 여기서 시작된다. 이 챕터의 목표는 지식이 아니라
+  <strong>인터넷에서 접근 가능한 URL 하나</strong>다.</p>
+  <div class="chapter-meta">
+    <span><b>배정</b> 10시간 (W2)</span>
+    <span><b>선행</b> Ch.1</span>
+    <span><b>검증 환경</b> google-genai 2.14.0 · Python 3.12.13</span>
+    <span><b>산출물</b> Cloud Run URL + Gemini 응답</span>
+  </div>
+</div>
+
+<div class="prose">
+
+<h2><span class="num">§ 2.1</span>이 챕터가 존재하는 이유</h2>
+
+<blockquote>
+Google JD, minimum qualification ③:<br>
+<em>"Experience taking production-grade AI-driven solutions from conception to launch and
+<strong>architecting AI systems on cloud platforms (e.g., GCP)</strong>."</em>
+</blockquote>
+
+<p>이 문장이 현재 <strong>충족되지 않은 두 항목 중 하나</strong>다. 그리고 이건 읽어서 채워지지 않는다.
+"GCP를 공부했다"는 이 칸을 못 채운다. <strong>배포된 것이 있어야 채워진다.</strong></p>
+
+<div class="note signal">
+  <span class="label">W2의 통과 기준은 단 하나다</span>
+  <p><strong>인터넷 어디서든 열리는 URL이 Gemini의 응답을 반환한다.</strong></p>
+  <p>기능이 초라해도 상관없다. 예쁘지 않아도 된다. 로컬에서 도는 것은 이 기준을 만족하지 않는다.
+  이게 안 되면 Phase 1로 넘어가지 않는다 — Project A 전체가 이 위에 올라가기 때문이다.</p>
+</div>
+
+<h2><span class="num">§ 2.2</span>클라우드를 아는 사람에게 GCP 설명하기</h2>
+
+<p>9년차에게 클라우드 개념을 설명할 필요는 없다. <strong>용어 대응표</strong>만 있으면 된다.</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>개념</th><th>AWS</th><th>GCP</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td>계정 격리 단위</td><td>Account</td><td><strong>Project</strong></td><td>GCP는 프로젝트가 기본 경계. 모든 리소스가 프로젝트에 속한다</td></tr>
+<tr><td>컨테이너 서버리스</td><td>App Runner / Fargate</td><td><strong>Cloud Run</strong></td><td>이번 챕터의 배포 대상</td></tr>
+<tr><td>함수</td><td>Lambda</td><td>Cloud Run functions</td><td>Cloud Run에 통합됨</td></tr>
+<tr><td>권한</td><td>IAM Role/Policy</td><td>IAM Role</td><td>개념 유사. GCP는 역할 부여 단위가 더 단순</td></tr>
+<tr><td>워크로드 신원</td><td>인스턴스 프로파일</td><td><strong>서비스 계정</strong></td><td>§2.6에서 중요하게 다룬다</td></tr>
+<tr><td>객체 저장소</td><td>S3</td><td>Cloud Storage (GCS)</td><td>—</td></tr>
+<tr><td>관리형 Postgres</td><td>RDS</td><td>Cloud SQL</td><td>Project A에서 쓴다</td></tr>
+<tr><td>비밀 관리</td><td>Secrets Manager</td><td>Secret Manager</td><td>—</td></tr>
+<tr><td><strong>AI 플랫폼</strong></td><td>Bedrock</td><td><strong>Vertex AI</strong></td><td>Gemini·임베딩·Vector Search가 전부 여기</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Vertex AI vs Gemini API — 헷갈리는 지점</h3>
+
+<p>Google에서 Gemini를 부르는 경로가 <strong>두 개</strong>다. 이걸 구분 못 하면 문서를 읽을 때 계속 혼란스럽다.</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th></th><th>Gemini Developer API</th><th><strong>Vertex AI</strong></th></tr></thead>
+<tbody>
+<tr><td>인증</td><td>API 키</td><td><strong>서비스 계정 / ADC</strong></td></tr>
+<tr><td>대상</td><td>개인·프로토타입</td><td><strong>기업</strong></td></tr>
+<tr><td>데이터 위치 통제</td><td>제한적</td><td><strong>리전 지정 가능</strong></td></tr>
+<tr><td>IAM 연동</td><td>❌</td><td>✅</td></tr>
+<tr><td>감사 로그</td><td>제한적</td><td>✅ Cloud Audit Logs</td></tr>
+<tr><td>VPC 통제</td><td>❌</td><td>✅</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note signal">
+  <span class="label">FDE는 무조건 Vertex AI다</span>
+  <p>API 키 방식은 <strong>기업에 들어갈 수 없다.</strong> 키가 유출되면 회수 경로가 없고,
+  누가 무엇을 호출했는지 감사 로그가 안 남고, 데이터가 어느 리전에서 처리되는지 통제할 수 없다.</p>
+  <p>고객사 보안팀이 가장 먼저 묻는 게 이 세 가지다. Google JD가 말하는
+  <em>"security perimeters"</em>, <em>"knowledge of network/cloud architecture"</em>가 정확히 이 영역이다.
+  <strong>그래서 이 핸드북은 처음부터 Vertex AI로만 간다.</strong> API 키 방식은 쓰지 않는다.</p>
+</div>
+
+<h2><span class="num">§ 2.3</span>SDK — 무엇이 현행인가</h2>
+
+<div class="note warn">
+  <span class="label">인터넷 예제의 절반이 낡았다</span>
+  <p>Google의 Python SDK는 최근 몇 년간 여러 번 바뀌었다. 검색해서 나오는 코드가
+  <strong>동작하지 않는 구버전인 경우가 매우 흔하다.</strong> 지금 시점의 정답은 이것이다.</p>
+</div>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>패키지</th><th>상태</th><th>쓸 것인가</th></tr></thead>
+<tbody>
+<tr><td><code>google-genai</code></td><td><strong>현행</strong> (검증: 2.14.0)</td><td>✅ <strong>이것만 쓴다</strong></td></tr>
+<tr><td><code>google-generativeai</code></td><td>Deprecated (중대 버그만 수정)</td><td>❌</td></tr>
+<tr><td><code>vertexai</code> (구 SDK)</td><td>레거시</td><td>❌</td></tr>
+</tbody>
+</table>
+</div>
+
+<pre><code>uv add google-genai        # ✅
+# uv add google-generativeai   ← ❌ deprecated</code></pre>
+
+<h3>클라이언트 만들기 — 두 가지 방법, 둘 다 검증됨</h3>
+
+<pre><code>from google import genai
+
+# 방법 1 — 환경변수 (Cloud Run에서 권장)
+#   GOOGLE_GENAI_USE_VERTEXAI=true
+#   GOOGLE_CLOUD_PROJECT=my-project
+#   GOOGLE_CLOUD_LOCATION=us-central1
+client = genai.Client()
+
+# 방법 2 — 명시적 인자 (로컬 테스트에서 명확)
+client = genai.Client(vertexai=True, project="my-project", location="us-central1")</code></pre>
+
+<div class="diagram">검증 결과 (google-genai 2.14.0)
+  env 기반 Client 생성 OK  | vertexai 모드: True
+  명시 인자 Client 생성 OK | vertexai 모드: True</div>
+
+<div class="note">
+  <span class="label">플래그 이름이 바뀌는 중이다</span>
+  <p>SDK 2.14.0을 뜯어보면 <code>enterprise</code>와 <code>vertexai</code> 두 파라미터가 모두 있고,
+  <code>vertexai</code>는 <strong>legacy flag for <code>enterprise</code></strong> 로 표시돼 있다.
+  환경변수도 <code>GOOGLE_GENAI_USE_VERTEXAI</code>(구)와 <code>GOOGLE_GENAI_USE_ENTERPRISE</code>(신)를
+  <strong>둘 다 읽는다.</strong></p>
+  <p>당장은 어느 쪽을 써도 동작한다. 다만 <strong>남의 코드에서 두 이름이 섞여 나와도 당황하지 않으면 된다.</strong>
+  이런 게 인터넷 예제가 계속 깨지는 이유다.</p>
+</div>
+
+<h2><span class="num">§ 2.4</span>첫 호출과 비용 계측</h2>
+
+<p>Ch.1에서 만든 계측 습관을 여기서 실제 응답에 연결한다.</p>
+
+<pre><code>from google import genai
+from google.genai import types
+
+client = genai.Client(vertexai=True, project=PROJECT, location="us-central1")
+
+resp = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents="RAG를 한 문장으로 설명해줘",
+    config=types.GenerateContentConfig(
+        system_instruction="너는 간결한 기술 문서 작성자다.",
+        temperature=0.2,
+        max_output_tokens=512,
+    ),
+)
+
+print(resp.text)
+
+u = resp.usage_metadata
+print(u.prompt_token_count, u.candidates_token_count, u.total_token_count)</code></pre>
+
+<h3><code>usage_metadata</code>에 실제로 있는 필드 (SDK 확인)</h3>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>필드</th><th>의미</th><th>과금</th></tr></thead>
+<tbody>
+<tr><td><code>prompt_token_count</code></td><td>입력 토큰</td><td>입력 요율</td></tr>
+<tr><td><code>candidates_token_count</code></td><td>출력 토큰</td><td>출력 요율</td></tr>
+<tr><td><code>cached_content_token_count</code></td><td>캐시에서 재사용된 입력</td><td><strong>1/10 요율</strong></td></tr>
+<tr><td><strong><code>thoughts_token_count</code></strong></td><td><strong>추론(thinking) 토큰</strong></td><td><strong>출력 요율로 과금</strong></td></tr>
+<tr><td><code>tool_use_prompt_token_count</code></td><td>툴 호출에 쓰인 입력</td><td>입력 요율</td></tr>
+<tr><td><code>total_token_count</code></td><td>합계</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note warn">
+  <span class="label">thinking 토큰이 비용 사고의 주범이다</span>
+  <p>Gemini 2.5 계열은 답을 내기 전에 <strong>내부적으로 "생각"을 한다.</strong> 그 토큰은
+  <code>resp.text</code>에 보이지 않지만 <strong>출력 요율로 과금된다.</strong></p>
+  <p>즉 <em>"응답이 3줄인데 왜 비용이 이렇게 나오지?"</em> 의 답이 대개 여기 있다.
+  <code>thoughts_token_count</code>를 계측에 포함하지 않으면 <strong>비용 추정이 실제보다 낮게 나온다.</strong>
+  고객에게 ROI를 제시하는 자리에서 이건 치명적이다.</p>
+  <p>제어는 <code>GenerateContentConfig(thinking_config=...)</code>로 한다. Ch.4에서 다룬다.</p>
+</div>
+
+<h3>계측을 포함한 래퍼</h3>
+
+<pre><code>PRICES = {  # USD per 1M tokens — Vertex AI 공식 가격표, 2026-07 확인
+    "gemini-2.5-flash": {"in": 0.30, "out": 2.50, "cached": 0.03},
+    "gemini-2.5-pro":   {"in": 1.25, "out": 10.00, "cached": 0.13},
+}
+
+def cost_of(model: str, u) -> float:
+    p = PRICES[model]
+    cached = u.cached_content_token_count or 0
+    fresh_in = (u.prompt_token_count or 0) - cached
+    # thinking 토큰은 출력 요율로 과금된다
+    out = (u.candidates_token_count or 0) + (u.thoughts_token_count or 0)
+    return round(
+        fresh_in / 1e6 * p["in"] + cached / 1e6 * p["cached"] + out / 1e6 * p["out"], 8
+    )</code></pre>
+
+<h3>병렬 호출 — Ch.1의 <code>gather</code>가 여기서 쓰인다</h3>
+
+<pre><code>import asyncio
+
+async def ask_many(questions: list[str]) -> list[str]:
+    tasks = [
+        client.aio.models.generate_content(      # .aio 가 비동기 인터페이스
+            model="gemini-2.5-flash", contents=q
+        )
+        for q in questions
+    ]
+    results = await asyncio.gather(*tasks)
+    return [r.text for r in results]</code></pre>
+
+<p>LLM 호출은 수 초짜리 I/O다. 순차로 5번 호출하면 15초, <code>gather</code>면 3초다.
+Google JD의 <em>"latency"</em> 요건이 이런 선택에서 갈린다.</p>
+
+<h2><span class="num">§ 2.5</span>W2 실행 절차</h2>
+
+<p>여기부터는 읽는 게 아니라 <strong>따라 하는 것</strong>이다. 순서대로 진행한다.</p>
+
+<h3>1단계 — gcloud CLI 설치 (30분)</h3>
+
+<p>현재 이 머신에 <code>gcloud</code>가 설치돼 있지 않다. 먼저 이것부터 한다.</p>
+
+<pre><code>brew install --cask google-cloud-sdk
+
+gcloud version
+gcloud auth login                    # 브라우저 인증
+gcloud auth application-default login   # ADC — 코드가 쓸 자격증명</code></pre>
+
+<div class="note">
+  <span class="label">두 가지 인증의 차이</span>
+  <p><code>gcloud auth login</code>은 <strong>CLI 자신</strong>이 쓰는 자격증명이고,
+  <code>gcloud auth application-default login</code>은 <strong>내 코드(SDK)</strong>가 쓰는 자격증명(ADC)이다.
+  <strong>둘 다 해야 한다.</strong> 하나만 하고 "인증했는데 왜 안 되지"로 시간을 버리는 경우가 흔하다.</p>
+  <p>이 명령들은 브라우저를 띄우는 대화형이라, Claude Code에서는
+  <code>!</code> 를 앞에 붙여 직접 실행하는 게 편하다. 예: <code>! gcloud auth login</code></p>
+</div>
+
+<h3>2단계 — 프로젝트와 API (30분)</h3>
+
+<pre><code>gcloud projects create fde-lab-$(date +%Y%m%d) --name="FDE Lab"
+gcloud config set project fde-lab-YYYYMMDD
+
+# 과금 계정 연결 — 이게 없으면 아무것도 안 된다
+gcloud billing accounts list
+gcloud billing projects link fde-lab-YYYYMMDD --billing-account=XXXXXX-XXXXXX
+
+# 필요한 API 켜기
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  aiplatform.googleapis.com</code></pre>
+
+<div class="note warn">
+  <span class="label">과금 — 반드시 먼저 방어선을 친다</span>
+  <p>신규 계정은 보통 무료 크레딧이 있지만, <strong>예산 알림을 먼저 걸어두는 게 습관</strong>이다.
+  콘솔에서 <em>Billing → Budgets &amp; alerts</em> 로 월 $10 정도의 알림을 설정한다.</p>
+  <p>이건 개인 실습 안전장치이기도 하지만, <strong>FDE 업무 그 자체이기도 하다.</strong>
+  고객사에 AI를 배포할 때 비용 통제 장치를 같이 설계하지 않으면 그건 미완성 시스템이다.</p>
+</div>
+
+<h3>3단계 — 로컬에서 Gemini 첫 호출 (60분)</h3>
+
+<pre><code>uv init --python 3.12 fde-hello && cd fde-hello
+uv add google-genai fastapi "uvicorn[standard]" pydantic-settings
+
+export GOOGLE_GENAI_USE_VERTEXAI=true
+export GOOGLE_CLOUD_PROJECT=fde-lab-YYYYMMDD
+export GOOGLE_CLOUD_LOCATION=us-central1
+
+uv run python -c "
+from google import genai
+c = genai.Client()
+r = c.models.generate_content(model='gemini-2.5-flash', contents='한 문장으로 자기소개')
+print(r.text)
+print(r.usage_metadata)
+"</code></pre>
+
+<p><strong>여기서 응답이 나와야 다음으로 간다.</strong> 안 나오면 §2.7 트러블슈팅으로.</p>
+
+<h3>4단계 — Cloud Run 배포 (90분)</h3>
+
+<p>Ch.1에서 만든 FastAPI 앱에 Gemini 호출을 붙이고 배포한다.</p>
+
+<pre><code># main.py — Cloud Run 은 PORT 환경변수로 포트를 알려준다 (기본 8080)
+import os
+from fastapi import FastAPI
+from google import genai
+
+app = FastAPI()
+client = genai.Client()          # 환경변수에서 설정을 읽는다
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
+
+@app.get("/ask")
+async def ask(q: str):
+    r = await client.aio.models.generate_content(
+        model="gemini-2.5-flash", contents=q
+    )
+    u = r.usage_metadata
+    return {
+        "answer": r.text,
+        "tokens": {"in": u.prompt_token_count, "out": u.candidates_token_count},
+        "cost_usd": cost_of("gemini-2.5-flash", u),
+    }</code></pre>
+
+<pre><code>gcloud run deploy fde-hello \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_LOCATION=us-central1</code></pre>
+
+<div class="note evidence">
+  <span class="label">uv 프로젝트 배포에 관한 최신 사실</span>
+  <p>Cloud Run 소스 배포는 Dockerfile이 없으면 <strong>buildpack</strong>이 언어를 자동 감지한다.
+  예전에는 Python에 <code>requirements.txt</code>가 필수라 <code>uv</code> 프로젝트가 곤란했는데,
+  <strong>지금은 <code>pyproject.toml</code>이 정식 지원(GA)된다.</strong> uv·Poetry·pip 모두 인식한다.</p>
+  <p>주의할 점 하나: <strong>두 파일이 다 있으면 <code>requirements.txt</code>가 우선</strong>한다.
+  옛날에 만들어둔 <code>requirements.txt</code>가 남아 있으면 <code>pyproject.toml</code>이 무시되어
+  "왜 의존성이 안 맞지" 하게 된다.</p>
+</div>
+
+<p>배포가 끝나면 URL이 출력된다. <strong>그 URL이 이 챕터의 산출물이다.</strong></p>
+
+<pre><code>curl "https://fde-hello-xxxxx.us-central1.run.app/ask?q=RAG란%20무엇인가"</code></pre>
+
+<h2><span class="num">§ 2.6</span>서비스 계정 — 9년차가 그냥 지나치면 안 되는 부분</h2>
+
+<p>위 배포는 동작한다. <strong>하지만 프로덕션 기준으로는 틀렸다.</strong></p>
+
+<p>서비스 계정을 지정하지 않으면 Cloud Run은 <strong>Compute Engine 기본 서비스 계정</strong>을 쓴다.
+그리고 그 계정은 프로젝트에 대해 <strong>Editor 역할</strong>을 갖고 있는 경우가 많다.
+Gemini 한 번 부르자고 프로젝트 전체 편집 권한을 들고 도는 셈이다.</p>
+
+<pre><code># 전용 서비스 계정 — 최소 권한
+gcloud iam service-accounts create fde-hello-sa \
+  --display-name="FDE hello service"
+
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member="serviceAccount:fde-hello-sa@$PROJECT.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"     # Vertex AI 호출 권한만
+
+gcloud run deploy fde-hello \
+  --source . --region us-central1 \
+  --service-account fde-hello-sa@$PROJECT.iam.gserviceaccount.com \
+  --set-env-vars GOOGLE_GENAI_USE_VERTEXAI=true,GOOGLE_CLOUD_LOCATION=us-central1</code></pre>
+
+<div class="note">
+  <span class="label">역할이 무엇을 주는지 직접 확인하는 습관</span>
+  <p>문서를 믿지 말고 직접 조회한다. 고객사 보안 리뷰에서 <em>"그 역할이 정확히 뭘 허용합니까"</em> 라는
+  질문을 받으면 이 명령으로 답한다.</p>
+  <pre><code>gcloud iam roles describe roles/aiplatform.user</code></pre>
+</div>
+
+<div class="note signal">
+  <span class="label">FDE 관점 — 이게 면접 소재가 되는 이유</span>
+  <p>Google JD responsibility ②:
+  <em>"Architect and code the connective tissue between Google's AI products and customer's
+  live infrastructure, including APIs, legacy data silos, and <strong>security perimeters</strong>."</em></p>
+  <p>AI만 공부한 지원자는 <code>--allow-unauthenticated</code> + 기본 서비스 계정으로 데모를 만들고 끝낸다.
+  <strong>기본 서비스 계정이 왜 문제인지, 최소 권한을 어떻게 잡는지 말할 수 있는 것</strong>이
+  9년차 백엔드가 가진 차별점이다. 이건 새로 배우는 게 아니라 이미 아는 것을 GCP 용어로 말하는 것뿐이다.</p>
+  <p>Project A에서는 여기서 한 발 더 나간다 — <code>--allow-unauthenticated</code>를 떼고
+  IAM 인증을 걸며, 사용자별 권한에 따라 검색 결과가 달라지게 만든다.</p>
+</div>
+
+<h2><span class="num">§ 2.7</span>자주 막히는 지점</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>증상</th><th>원인</th><th>조치</th></tr></thead>
+<tbody>
+<tr><td><code>DefaultCredentialsError</code></td><td>ADC 없음</td><td><code>gcloud auth application-default login</code></td></tr>
+<tr><td><code>403 PERMISSION_DENIED</code> (로컬)</td><td>API 미활성 또는 과금 미연결</td><td><code>gcloud services enable aiplatform.googleapis.com</code> · 과금 확인</td></tr>
+<tr><td><code>403</code> (Cloud Run에서만)</td><td>서비스 계정에 <code>aiplatform.user</code> 없음</td><td>§2.6의 role binding</td></tr>
+<tr><td><code>404 model not found</code></td><td>해당 리전에 모델 없음 / 모델명 오타</td><td>리전을 <code>us-central1</code>로. 모델명 확인</td></tr>
+<tr><td>배포는 되는데 컨테이너가 안 뜸</td><td><code>PORT</code>를 안 씀</td><td>Cloud Run이 주는 <code>PORT</code>(기본 8080)로 listen</td></tr>
+<tr><td>의존성이 이상하게 설치됨</td><td><code>requirements.txt</code>가 <code>pyproject.toml</code>보다 우선</td><td>안 쓰는 <code>requirements.txt</code> 삭제</td></tr>
+<tr><td>비용이 예상보다 큼</td><td><code>thoughts_token_count</code> 미반영</td><td>§2.4의 <code>cost_of</code></td></tr>
+<tr><td>인터넷 예제가 안 돌아감</td><td><code>google-generativeai</code> (deprecated)</td><td><code>google-genai</code>로</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note evidence">
+  <span class="label">배포 문제는 로그를 먼저 본다</span>
+  <p>502나 컨테이너 기동 실패를 만나면 가설을 세우기 전에 로그부터 본다.</p>
+  <pre><code>gcloud run services logs read fde-hello --region us-central1 --limit 50</code></pre>
+  <p>포트 바인딩 실패인지, 임포트 에러인지, 권한 문제인지가 대개 첫 20줄에 다 나온다.</p>
+</div>
+
+<h2><span class="num">§ 2.8</span>체크리스트</h2>
+
+<div class="progress" data-progress-for="ch2-check">
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <div class="progress-label">0 / 0 완료 · 0%</div>
+</div>
+
+<div id="ch2-check">
+<ul class="checklist">
+  <li><label><input type="checkbox" data-id="c1"><span><code>gcloud</code> 설치 후 <code>auth login</code>과 <code>auth application-default login</code>을 <strong>둘 다</strong> 했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c2"><span>GCP 프로젝트를 만들고 과금을 연결했으며 <strong>예산 알림을 설정</strong>했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c3"><span>로컬에서 <code>google-genai</code>로 Gemini 응답을 받았다</span></label></li>
+  <li><label><input type="checkbox" data-id="c4"><span>Vertex AI와 Gemini Developer API의 차이를, <strong>기업에서 왜 전자여야 하는지</strong>로 설명할 수 있다</span></label></li>
+  <li><label><input type="checkbox" data-id="c5"><span><code>usage_metadata</code>로 요청 1건의 비용을 계산했고, <strong><code>thoughts_token_count</code>를 포함</strong>시켰다</span></label></li>
+  <li><label><input type="checkbox" data-id="c6"><span><strong>★ Cloud Run에 배포했고 인터넷에서 열리는 URL이 Gemini 응답을 반환한다</strong></span></label></li>
+  <li><label><input type="checkbox" data-id="c7"><span>전용 서비스 계정을 만들어 <code>roles/aiplatform.user</code>만 부여해 재배포했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c8"><span>기본 서비스 계정을 쓰면 왜 안 되는지 설명할 수 있다</span></label></li>
+  <li><label><input type="checkbox" data-id="c9"><span><code>gcloud run services logs read</code>로 로그를 읽어봤다</span></label></li>
+</ul>
+</div>
+
+<div class="note evidence">
+  <span class="label">Phase 1로 넘어가도 되는 기준</span>
+  <p><strong>c6이 전부다.</strong> 나머지 8개를 다 해도 c6이 없으면 Phase 0은 끝나지 않았다.
+  Google JD min③은 "GCP를 안다"가 아니라 <strong>"클라우드에 AI 시스템을 올려봤다"</strong>를 묻기 때문이다.</p>
+  <p>c7·c8은 c6 다음으로 중요하다. 이게 데모를 만드는 사람과 프로덕션을 만드는 사람을 가르고,
+  9년차가 신입과 다른 지점을 보여주는 부분이다.</p>
+</div>
+
+<h2><span class="num">§ 2.9</span>과제</h2>
+
+<ol>
+  <li><strong>배포 (핵심, 위 4단계 그대로)</strong> — URL을 <code>work/ch02/deployed.md</code>에 기록한다.
+      <strong>스크린샷도 남긴다.</strong> 나중에 이력서와 포트폴리오에 쓴다.</li>
+
+  <li><strong>비용 실측 (45분)</strong> — 같은 질문을 <code>gemini-2.5-flash</code>와 <code>gemini-2.5-pro</code>로
+      각각 10번 호출하고, 모델별 <strong>평균 비용·평균 지연·thinking 토큰 비율</strong>을 표로 만든다.
+      <em>"왜 flash를 골랐나"에 숫자로 답할 수 있게 된다 — 면접에서 실제로 나오는 질문이다.</em></li>
+
+  <li><strong>아키텍처 다이어그램 (45분)</strong> — 지금 배포한 것의 구성도를 그린다.
+      요청 → Cloud Run → 서비스 계정 → Vertex AI → 응답, 그리고 <strong>인증이 어디서 일어나는지</strong> 표시.
+      Project A에서 이 그림이 훨씬 복잡해진다. 지금 단순할 때 그려두면 대조가 된다.</li>
+
+  <li><strong>비용 방어선 (30분)</strong> — 예산 알림 외에, 애플리케이션 레벨에서
+      <code>max_output_tokens</code> 상한과 요청당 비용 로깅을 넣는다.
+      <em>고객에게 "비용 폭주를 어떻게 막습니까"라는 질문을 반드시 받는다.</em></li>
+</ol>
+
+<h2><span class="num">§ 2.10</span>면접에서 나올 법한 질문</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>질문</th><th>답에 반드시 들어가야 하는 것</th></tr></thead>
+<tbody>
+<tr><td>"고객이 API 키 방식으로 이미 만들어놨습니다. 어떻게 하시겠습니까?"</td><td>감사 로그·키 회수·데이터 리전·IAM 연동. <strong>비난이 아니라 마이그레이션 경로를 제시</strong></td></tr>
+<tr><td>"Vertex AI와 Bedrock 중 어떻게 고르십니까?"</td><td>기존 클라우드 계약·데이터 위치·모델 요구사항. <strong>"Google이니까"는 오답</strong></td></tr>
+<tr><td>"이 시스템의 월 비용을 어떻게 추정하시겠습니까?"</td><td>요청량 × 요청당 토큰 × 요율. <strong>thinking 토큰과 캐싱 언급하면 강함</strong></td></tr>
+<tr><td>"최소 권한을 어떻게 설계하셨습니까?"</td><td>전용 서비스 계정 + 단일 역할. 기본 SA가 왜 위험한지</td></tr>
+<tr><td>"응답이 느리다는 불만이 들어왔습니다. 진단 순서는?"</td><td>계측 먼저 — 어느 구간인지(모델/네트워크/앱). 추측 금지</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note signal">
+  <span class="label">Phase 0을 마치며</span>
+  <p>여기까지 하면 <strong>Google JD 최소 자격 ③에 처음으로 실체가 생긴다.</strong>
+  아직 "production-grade"라고 하긴 이르지만, "conception to launch"의 launch는 한 번 해본 것이다.</p>
+  <p>다음 Phase 1(2주)에서 LLM 실무 핵심을 다루고, 그다음 <strong>Phase 2의 6주가 이 프로젝트의 승부처</strong>다.
+  min④(정형+비정형 RAG)가 거기서 채워진다.</p>
+</div>
+
+<div class="chapter-nav">
+  <span><a href="ch01-python-for-java.html">← Ch.1 Python for Senior Java Engineers</a></span>
+  <span style="color:var(--ink-3)">다음 · Ch.3 LLM 실무 핵심 (예정)</span>
+</div>
+
+</div><!-- /prose -->
+</div><!-- /wrap -->
+
+<script src="assets/handbook.js"></script>
+</body>
+</html>

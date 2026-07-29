@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch.1 — Python for Senior Java Engineers | GenAI FDE Handbook</title>
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+
+<header class="masthead">
+  <span class="mark">GenAI FDE Handbook</span>
+  <span class="sep"></span>
+  <a href="index.html">← 목차</a>
+  <button id="themeToggle" type="button">DARK</button>
+</header>
+
+<div class="wrap">
+
+<div class="chapter-head">
+  <div class="kicker">Chapter 01 · Phase 0 · W1</div>
+  <h1>Python for Senior Java Engineers</h1>
+  <p class="sub">문법서가 아니다. 9년치 Java/Spring 지식을 버리지 않고 옮기는 매핑표다.
+  모르는 것을 배우는 게 아니라, 아는 것의 이름을 바꾸는 작업이다.</p>
+  <div class="chapter-meta">
+    <span><b>배정</b> 10시간 (W1)</span>
+    <span><b>선행</b> 없음</span>
+    <span><b>검증 환경</b> Python 3.12.13 · FastAPI 0.140 · Pydantic 2.13</span>
+    <span><b>산출물</b> 로컬에서 도는 FastAPI 서비스</span>
+  </div>
+</div>
+
+<div class="prose">
+
+<h2><span class="num">§ 1.1</span>왜 이 챕터가 얇은가</h2>
+
+<p>세 공고를 통틀어 Python에 대한 요구는 이게 전부다.</p>
+
+<blockquote>
+Google: <em>"2 years of experience with software development using Python or similar coding languages."</em><br>
+OpenAI FDE: <em>"Write and review production-grade code across frontend and backend using Python, JavaScript, or comparable stacks."</em>
+</blockquote>
+
+<p><strong>"or similar", "or comparable stacks"</strong> 에 주목한다. 이 요건은 <em>Python 전문가</em>를 찾는 게 아니라
+<strong>프로덕션 코드를 써본 사람</strong>을 찾는 것이다. 그 조건은 이미 9년째 충족하고 있다.</p>
+
+<div class="note signal">
+  <span class="label">그래서 목표를 이렇게 잡는다</span>
+  <p>Python을 <em>배우는</em> 것이 아니라, <strong>이미 아는 것을 Python으로 쓰는</strong> 것이다.
+  Spring으로 짜던 서비스를 FastAPI로 짤 수 있으면 이 챕터는 끝이다.
+  리스트 컴프리헨션 관용구나 메타클래스 같은 건 필요할 때 찾아 쓰면 된다.</p>
+  <p>이 챕터에 <strong>10시간</strong>만 배정된 이유다. 여기서 시간을 더 쓰면 Project A가 밀린다.</p>
+</div>
+
+<h2><span class="num">§ 1.2</span>핵심 매핑표</h2>
+
+<p>먼저 전체 지도를 본다. 각 항목은 뒤에서 검증된 코드로 다시 나온다.</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>Java / Spring</th><th>Python</th><th>차이점</th></tr></thead>
+<tbody>
+<tr><td>Maven / Gradle</td><td><code>uv</code> + <code>pyproject.toml</code></td><td>uv가 Python 버전까지 관리한다. jenv가 필요 없다</td></tr>
+<tr><td><code>@RestController</code></td><td><code>APIRouter</code> / <code>@app.post</code></td><td>거의 동일</td></tr>
+<tr><td>Spring Bean / DI</td><td><code>Depends()</code></td><td>컨테이너 스캔이 아니라 <strong>함수 시그니처가 곧 선언</strong></td></tr>
+<tr><td><code>@ConfigurationProperties</code></td><td><code>BaseSettings</code></td><td>환경변수 → 타입 변환·검증까지 한 번에</td></tr>
+<tr><td>Bean Validation (<code>@NotNull</code>)</td><td>Pydantic <code>Field()</code></td><td>DTO 클래스 자체가 검증기</td></tr>
+<tr><td>DTO + Jackson</td><td>Pydantic <code>BaseModel</code></td><td>직렬화·역직렬화·검증·문서화가 한 클래스</td></tr>
+<tr><td><code>CompletableFuture</code></td><td><code>async</code> / <code>await</code></td><td><strong>아래 §1.5에서 자세히</strong> — 가장 오해가 잦다</td></tr>
+<tr><td><code>allOf(...).join()</code></td><td><code>asyncio.gather()</code></td><td>동일한 개념</td></tr>
+<tr><td><code>orTimeout()</code></td><td><code>asyncio.timeout()</code></td><td>동일</td></tr>
+<tr><td>JPA / Hibernate</td><td>SQLAlchemy 2.0</td><td>Project A에서 쓴다</td></tr>
+<tr><td>JUnit</td><td>pytest</td><td>어노테이션 대신 함수명 규칙</td></tr>
+<tr><td>Optional&lt;T&gt;</td><td><code>T | None</code></td><td>타입힌트로 표현. 런타임 강제는 없음</td></tr>
+<tr><td>interface</td><td><code>Protocol</code> / ABC</td><td>구조적 타이핑. implements 선언 불필요</td></tr>
+<tr><td>enum</td><td><code>Literal[...]</code> / <code>Enum</code></td><td>API DTO에는 <code>Literal</code>이 간편</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2><span class="num">§ 1.3</span>가장 큰 차이 — 타입이 강제되지 않는다</h2>
+
+<p>Java에서 오면 이게 제일 먼저 발을 건다.</p>
+
+<pre><code>def add(a: int, b: int) -> int:
+    return a + b
+
+add("hello", "world")   # 실행된다. "helloworld" 반환</code></pre>
+
+<p><strong>타입힌트는 런타임에 아무것도 하지 않는다.</strong> 주석에 가깝다.
+컴파일러가 잡아주던 것을 이제 아무도 안 잡아준다.</p>
+
+<p>그래서 Python 진영은 두 가지로 이 구멍을 메운다. <strong>둘 다 써야 한다.</strong></p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>도구</th><th>시점</th><th>Java 대응</th><th>역할</th></tr></thead>
+<tbody>
+<tr><td><code>mypy</code> / <code>pyright</code></td><td>커밋 전 (정적)</td><td>컴파일러</td><td>코드 안의 타입 오류</td></tr>
+<tr><td><strong>Pydantic</strong></td><td>런타임 (경계)</td><td>Bean Validation</td><td><strong>외부에서 들어온 데이터</strong> 검증</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note evidence">
+  <span class="label">실무에서 중요한 것은 Pydantic 쪽이다</span>
+  <p>LLM 애플리케이션에서 가장 자주 깨지는 지점은 <strong>모델이 뱉은 JSON</strong>이다.
+  스키마를 지키라고 시켜도 안 지킬 때가 있다. 이때 Pydantic이 경계에서 걸러주지 않으면
+  이상한 값이 시스템 안쪽까지 들어온다.</p>
+  <p>Ch.4의 <strong>Structured Output</strong>이 바로 이 문제를 다룬다. 지금 Pydantic에 익숙해지는 게
+  거기서 그대로 쓰인다.</p>
+</div>
+
+<h2><span class="num">§ 1.4</span>Spring Boot 서비스를 FastAPI로</h2>
+
+<p>아래는 <strong>실제로 실행해서 검증한 코드</strong>다. Spring의 주요 구성요소가 어디로 갔는지 주석으로 표시했다.</p>
+
+<h3>설정 — <code>@ConfigurationProperties</code> 대응</h3>
+
+<pre><code>from functools import lru_cache
+from typing import Annotated
+from fastapi import Depends
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="APP_",      # APP_PROJECT_ID 환경변수를 읽는다
+        env_file=".env",
+        extra="ignore",
+    )
+    project_id: str = "local-dev"
+    location: str = "us-central1"
+    model: str = "gemini-2.5-flash"
+    max_output_tokens: int = Field(default=1024, ge=1, le=65535)
+
+@lru_cache                       # 앱 생애주기 동안 1회만 생성 = 싱글턴 Bean
+def get_settings() -> Settings:
+    return Settings()
+
+SettingsDep = Annotated[Settings, Depends(get_settings)]</code></pre>
+
+<p><code>application.yml</code> + <code>@ConfigurationProperties</code> + <code>@Validated</code> 가 한 클래스에 들어갔다.
+<code>max_output_tokens</code>에 붙은 <code>ge=1, le=65535</code>는 <code>@Min/@Max</code>와 같고,
+환경변수가 잘못되면 <strong>애플리케이션이 아예 시작하지 않는다.</strong> Spring과 동일한 fail-fast다.</p>
+
+<h3>DTO — Bean Validation 대응</h3>
+
+<pre><code>from typing import Literal
+from pydantic import BaseModel, Field
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)   # @NotBlank @Size
+    style: Literal["short", "detailed"] = "short"          # enum
+
+class AskResponse(BaseModel):
+    answer: str
+    model: str
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float</code></pre>
+
+<h3>엔드포인트 — <code>@RestController</code> 대응</h3>
+
+<pre><code>from fastapi import FastAPI, HTTPException
+
+app = FastAPI(title="ch12-verify")
+
+@app.get("/healthz")
+def healthz(s: SettingsDep) -> dict[str, str]:
+    return {"status": "ok", "project": s.project_id, "model": s.model}
+
+@app.post("/ask", response_model=AskResponse)
+async def ask(req: AskRequest, s: SettingsDep) -> AskResponse:
+    if req.style == "detailed" and len(req.question) &lt; 5:
+        raise HTTPException(status_code=422, detail="detailed 모드는 질문이 더 길어야 함")
+    in_tok, out_tok = len(req.question.split()), 42
+    return AskResponse(
+        answer=f"[stub:{req.style}] {req.question}",
+        model=s.model,
+        input_tokens=in_tok,
+        output_tokens=out_tok,
+        cost_usd=estimate_cost(in_tok, out_tok),
+    )</code></pre>
+
+<p><strong>여기가 Spring과 결정적으로 다른 지점이다.</strong>
+<code>req: AskRequest</code>와 <code>s: SettingsDep</code>라는 <em>타입 표기만으로</em>
+바디 파싱·검증·의존성 주입이 전부 결정된다. 컨테이너 스캔도, <code>@Autowired</code>도 없다.
+<strong>함수 시그니처가 곧 선언이다.</strong></p>
+
+<h3>실행 결과 (검증됨)</h3>
+
+<div class="diagram">healthz: 200 {'status': 'ok', 'project': 'local-dev', 'model': 'gemini-2.5-flash'}
+ask ok : 200 {'answer': '[stub:short] what is RAG', 'input_tokens': 3,
+               'output_tokens': 42, 'cost_usd': 0.0001059}
+empty  : 422 string_too_short      ← Field(min_length=1) 이 실제로 동작
+badenum: 422 literal_error         ← Literal 이 enum 처럼 동작
+custom : 422 detailed 모드는 질문이 더 길어야 함</div>
+
+<div class="note">
+  <span class="label">덤으로 따라오는 것</span>
+  <p>서버를 띄우고 <code>/docs</code>에 들어가면 <strong>OpenAPI 문서가 이미 생성되어 있다.</strong>
+  springdoc을 붙이고 어노테이션을 다는 작업이 없다. 타입 표기가 곧 스키마이기 때문이다.
+  고객 앞에서 30분 만에 PoC를 만들어야 하는 FDE 업무에서 이건 생각보다 큰 차이다.</p>
+</div>
+
+<h2><span class="num">§ 1.5</span>asyncio — 가장 오해가 잦은 부분</h2>
+
+<p>Java 경력자가 가장 많이 틀리는 지점이다. <code>async</code>를 "빨라지는 것"으로 이해하면 반드시 사고가 난다.</p>
+
+<h3>Java 스레드 모델과 무엇이 다른가</h3>
+
+<div class="diagram">Java (전통적 서블릿)
+  요청 1 ──▶ [스레드 1] ──── DB 대기 (스레드가 블록된 채 놀고 있음)
+  요청 2 ──▶ [스레드 2] ──── API 대기
+  → 동시 요청 수만큼 스레드. 스레드는 비싸다 (~1MB 스택)
+
+Python asyncio
+  요청 1 ─┐
+  요청 2 ─┼──▶ [단일 스레드 + 이벤트 루프]
+  요청 3 ─┘      await 를 만나면 그 자리를 양보하고 다른 요청을 처리
+  → 대기 중에 스레드를 붙잡지 않는다</div>
+
+<p>핵심은 <strong><code>await</code>는 "여기서 기다린다"가 아니라 "여기서 자리를 양보한다"</strong>는 것이다.
+Java 21의 Virtual Thread가 지향하는 바와 목적이 같다. 다만 <strong>Python은 그것을 명시적으로 써야 한다.</strong></p>
+
+<h3>그래서 이런 함정이 생긴다</h3>
+
+<pre><code>@app.post("/bad")
+async def bad():
+    time.sleep(3)        # ❌ 동기 블로킹 — 이벤트 루프 전체가 멈춘다
+    return {"ok": True}  #    이 3초 동안 다른 모든 요청이 대기한다</code></pre>
+
+<div class="note warn">
+  <span class="label">규칙 하나만 기억한다</span>
+  <p><strong><code>async def</code> 안에서는 블로킹 호출을 하지 않는다.</strong>
+  <code>requests</code> 대신 <code>httpx.AsyncClient</code>, <code>time.sleep</code> 대신 <code>asyncio.sleep</code>,
+  동기 DB 드라이버 대신 async 드라이버를 쓴다.</p>
+  <p>불가피하게 동기 라이브러리를 써야 하면 <code>await asyncio.to_thread(무거운_함수, 인자)</code> 로 감싼다.</p>
+  <p>참고로 <strong>FastAPI에서 <code>def</code>(async 없이)로 선언하면 FastAPI가 알아서 스레드풀에서 돌린다.</strong>
+  블로킹 코드를 써야 한다면 차라리 <code>async</code>를 빼는 게 안전하다. 위 <code>/healthz</code>가 그 예다.</p>
+</div>
+
+<h3>CompletableFuture 대응 — 실측</h3>
+
+<pre><code>import asyncio, time
+
+async def io(name, sec):
+    await asyncio.sleep(sec)
+    return name
+
+# 순차 — Java: f1.join(); f2.join(); f3.join()
+await io("a", 0.3); await io("b", 0.3); await io("c", 0.3)
+
+# 병렬 — Java: CompletableFuture.allOf(f1, f2, f3).join()
+await asyncio.gather(io("a", 0.3), io("b", 0.3), io("c", 0.3))
+
+# 타임아웃 — Java: future.orTimeout(100, MILLISECONDS)
+async with asyncio.timeout(0.1):
+    await io("slow", 5)     # TimeoutError</code></pre>
+
+<div class="diagram">실행 결과 (검증됨)
+  순차 await     : 0.90s
+  asyncio.gather : 0.30s     ← 3배
+  asyncio.timeout: TimeoutError 정상 발생</div>
+
+<p><strong>이게 왜 이 핸드북에서 중요한가.</strong> LLM 호출은 한 번에 수 초가 걸리는 I/O다.
+RAG에서 여러 검색을 동시에 태우거나(Ch.6 하이브리드 검색), 에이전트가 여러 툴을 병렬 호출할 때(Ch.10)
+<code>gather</code>를 쓰느냐 아니냐가 응답 시간을 몇 배로 갈라놓는다.
+Google JD가 말하는 <em>"latency"</em> 요건이 여기서 결정된다.</p>
+
+<h2><span class="num">§ 1.6</span>비용 계측 — 지금부터 습관으로</h2>
+
+<p>Google JD preferred에 이 항목이 있다.</p>
+
+<blockquote><em>"Knowledge of 'LLM-native' metrics (e.g., tokens/sec, cost-per-request)"</em></blockquote>
+
+<p>나중에 붙이는 게 아니라 <strong>첫 코드부터 넣는다.</strong> 어차피 Project A·B가 이걸 그대로 쓴다.</p>
+
+<pre><code># Vertex AI 공개 가격, USD per 1M tokens (2026-07 확인)
+PRICE_IN, PRICE_OUT = 0.30, 2.50    # gemini-2.5-flash
+
+def estimate_cost(input_tokens: int, output_tokens: int) -> float:
+    return round(input_tokens / 1e6 * PRICE_IN
+                 + output_tokens / 1e6 * PRICE_OUT, 8)</code></pre>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>모델</th><th>입력 / 1M</th><th>출력 / 1M</th><th>캐시된 입력 / 1M</th></tr></thead>
+<tbody>
+<tr><td>gemini-2.5-flash</td><td>$0.30</td><td>$2.50</td><td>$0.03</td></tr>
+<tr><td>gemini-2.5-pro (≤200K)</td><td>$1.25</td><td>$10.00</td><td>$0.13</td></tr>
+<tr><td>gemini-2.5-pro (&gt;200K)</td><td>$2.50</td><td>$15.00</td><td>$0.25</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><strong>출력이 입력보다 8배 비싸다</strong>(flash 기준). 그리고 캐시된 입력은 10분의 1이다.
+이 두 사실이 나중에 프롬프트 설계를 바꾼다 — 긴 시스템 프롬프트를 캐싱하고 출력을 짧게 유도하는 게
+비용에 직결된다. Ch.4에서 다시 다룬다.</p>
+
+<div class="note warn">
+  <span class="label">가격은 변한다</span>
+  <p>위 수치는 2026년 7월 <a href="https://cloud.google.com/vertex-ai/generative-ai/pricing">Vertex AI 공식 가격표</a>
+  기준이다. 코드에 상수로 박되 <strong>출처와 확인일을 주석으로 남긴다.</strong>
+  ROI를 고객에게 제시하는 자리에서 옛 가격을 말하면 신뢰를 잃는다.</p>
+</div>
+
+<h2><span class="num">§ 1.7</span>프로젝트 셋업 — uv</h2>
+
+<p>Maven/Gradle 자리에 <code>uv</code>가 온다. Python 버전 관리까지 겸해서 <code>pyenv</code>가 따로 필요 없다.</p>
+
+<pre><code>uv init --python 3.12 my-service     # mvn archetype:generate
+cd my-service
+uv add fastapi "uvicorn[standard]" pydantic-settings google-genai
+uv add --dev pytest mypy ruff        # &lt;scope&gt;test&lt;/scope&gt;
+
+uv run uvicorn app:app --reload      # mvn spring-boot:run
+uv run pytest                        # mvn test</code></pre>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>Maven/Gradle</th><th>uv</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td><code>pom.xml</code> / <code>build.gradle</code></td><td><code>pyproject.toml</code></td><td>선언</td></tr>
+<tr><td><code>mvn dependency:tree</code> 잠금</td><td><code>uv.lock</code></td><td><strong>커밋한다</strong></td></tr>
+<tr><td><code>~/.m2</code></td><td><code>~/.cache/uv</code></td><td>전역 캐시</td></tr>
+<tr><td><code>mvn exec:java</code></td><td><code>uv run</code></td><td>가상환경 자동 활성화</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><code>uv run</code>을 쓰면 <code>source .venv/bin/activate</code>를 할 일이 거의 없다.
+Java에서 클래스패스를 신경 안 쓰는 것과 같다.</p>
+
+<h2><span class="num">§ 1.8</span>Java 습관 중 버릴 것</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>Java 습관</th><th>Python에서는</th></tr></thead>
+<tbody>
+<tr><td>인터페이스 먼저 만들고 구현체 분리</td><td>구현부터. 필요해지면 <code>Protocol</code>로 추출. <strong>구현체 1개짜리 인터페이스를 만들지 않는다</strong></td></tr>
+<tr><td><code>UserServiceImpl</code>, <code>AbstractBaseHandler</code></td><td><code>user_service.py</code> 안에 함수. 클래스가 항상 필요하진 않다</td></tr>
+<tr><td>getter/setter</td><td>속성 직접 접근. 필요하면 <code>@property</code></td></tr>
+<tr><td>계층별 패키지 (<code>controller/service/repository</code>)</td><td>기능별 모듈. 작으면 파일 하나로 시작</td></tr>
+<tr><td>체크 예외 처리</td><td>Python에 체크 예외가 없다. 경계에서만 잡는다</td></tr>
+<tr><td>모든 것에 DI 컨테이너</td><td>모듈 임포트가 이미 싱글턴. <code>Depends</code>는 <em>교체가 필요할 때만</em></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="note signal">
+  <span class="label">FDE 관점 — 이게 왜 직무와 연결되는가</span>
+  <p>Google JD는 <em>"high-agency engineers with a founder's mindset"</em>, <em>"scrappy, high-signal demos"</em>를 말한다.
+  고객사 회의실에서 30분 안에 동작하는 PoC를 보여줘야 하는 상황에서
+  <strong>추상화 계층을 먼저 쌓는 습관은 부채다.</strong></p>
+  <p>동시에 — 그 PoC가 통과하면 <em>"transitioning from rapid prototypes to production-grade"</em> 가
+  당신 몫이다. <strong>언제 대충 짜고 언제 제대로 짜는지 아는 것</strong>이 9년차가 신입과 다른 점이고,
+  이 직무가 시니어를 뽑는 이유다.</p>
+</div>
+
+<h2><span class="num">§ 1.9</span>체크리스트</h2>
+
+<div class="progress" data-progress-for="ch1-check">
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <div class="progress-label">0 / 0 완료 · 0%</div>
+</div>
+
+<div id="ch1-check">
+<ul class="checklist">
+  <li><label><input type="checkbox" data-id="c1"><span><code>uv init</code>으로 프로젝트를 만들고 의존성을 추가할 수 있다</span></label></li>
+  <li><label><input type="checkbox" data-id="c2"><span>Pydantic <code>BaseModel</code>로 요청 DTO를 만들고 <strong>검증이 실제로 걸리는 것을 422 응답으로 확인</strong>했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c3"><span><code>BaseSettings</code>로 환경변수를 읽고, 잘못된 값에 앱이 시작조차 안 되는 것을 확인했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c4"><span><code>Depends</code>가 Spring DI와 무엇이 다른지 설명할 수 있다 (컨테이너 스캔 vs 시그니처)</span></label></li>
+  <li><label><input type="checkbox" data-id="c5"><span><strong><code>async def</code> 안에서 <code>time.sleep</code>을 쓰면 왜 안 되는지</strong> 설명할 수 있다</span></label></li>
+  <li><label><input type="checkbox" data-id="c6"><span><code>asyncio.gather</code>로 병렬 호출을 만들고 <strong>순차 대비 시간이 줄어드는 것을 직접 측정</strong>했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c7"><span><code>/docs</code>에서 자동 생성된 OpenAPI 문서를 확인했다</span></label></li>
+  <li><label><input type="checkbox" data-id="c8"><span>타입힌트가 런타임에 강제되지 않는다는 것과, 그래서 Pydantic이 필요한 이유를 안다</span></label></li>
+</ul>
+</div>
+
+<div class="note evidence">
+  <span class="label">다음 챕터로 넘어가도 되는 기준</span>
+  <p><strong>c5와 c6이 핵심이다.</strong> 나머지는 문법이라 필요할 때 찾으면 되지만,
+  async 모델을 잘못 이해하면 Project A·B에서 원인을 못 찾는 성능 문제로 돌아온다.
+  특히 c6은 읽지 말고 <strong>직접 돌려서 숫자를 봐야</strong> 한다.</p>
+</div>
+
+<h2><span class="num">§ 1.10</span>과제 (10시간 배정 중 약 6시간)</h2>
+
+<ol>
+  <li><strong>매핑표 직접 작성 (60분)</strong> — §1.2 표를 <strong>덮고</strong>, 본인이 지난 1년간 실제로 쓴
+      Spring 기능 15개를 나열한 뒤 Python 대응물을 채운다. 모르는 칸은 비워두고 찾아본다.
+      <em>남이 만든 표를 읽는 것과 자기 코드 기준으로 만드는 것은 다르다.</em></li>
+
+  <li><strong>기존 서비스 1개 이식 (180분)</strong> — 회사에서 짰던 Spring REST 엔드포인트 중
+      <strong>가장 단순한 것 하나</strong>를 FastAPI로 옮긴다. DB는 붙이지 말고 인메모리로.
+      목표는 완성도가 아니라 <em>"내 코드가 Python에서 어떻게 생겼는지"</em> 보는 것.</li>
+
+  <li><strong>병렬 호출 실측 (60분)</strong> — <code>httpx.AsyncClient</code>로 외부 API를 5번 호출하는 코드를
+      순차 버전과 <code>gather</code> 버전으로 각각 만들고 <strong>시간을 측정해 기록</strong>한다.
+      이 숫자가 Ch.11 관측 챕터의 출발점이 된다.</li>
+
+  <li><strong>비용 계측기 (60분)</strong> — §1.6의 <code>estimate_cost</code>를 확장해서
+      모델별 가격표를 딕셔너리로 만들고, 캐시된 입력 토큰도 반영한다.
+      <strong>이 코드는 버리지 않는다.</strong> Project A·B가 그대로 쓴다.</li>
+</ol>
+
+<div class="note signal">
+  <span class="label">기록 위치</span>
+  <p><code>work/ch01/</code>. 특히 4번 비용 계측기는 나중에 재사용하므로 별도 모듈로 만들어둔다.</p>
+</div>
+
+<h2><span class="num">§ 1.11</span>면접에서 나올 법한 질문</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>질문</th><th>이 질문이 보려는 것</th></tr></thead>
+<tbody>
+<tr><td>"Java에서 Python으로 오면서 가장 조심한 부분은?"</td><td>언어 차이를 <em>이해하고</em> 옮겼는지, 그냥 문법만 바꿨는지</td></tr>
+<tr><td>"async/await와 스레드 기반 동시성의 차이는?"</td><td><strong>가장 자주 나온다.</strong> §1.5를 자기 말로 설명할 수 있어야 한다</td></tr>
+<tr><td>"LLM 호출이 많은 서비스에서 지연을 어떻게 줄이겠나?"</td><td>gather / 스트리밍 / 캐싱 / 모델 등급 선택이 나와야 한다</td></tr>
+<tr><td>"타입 안정성이 없는 언어에서 프로덕션 품질을 어떻게 담보하나?"</td><td>정적 검사(mypy) + 경계 검증(Pydantic) + 테스트, 3층을 말할 수 있는지</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="chapter-nav">
+  <span><a href="ch00-role-analysis.html">← Ch.0 FDE라는 직무</a></span>
+  <span><a href="ch02-gcp-vertex.html">Ch.2 GCP · Vertex AI →</a></span>
+</div>
+
+</div><!-- /prose -->
+</div><!-- /wrap -->
+
+<script src="assets/handbook.js"></script>
+</body>
+</html>
