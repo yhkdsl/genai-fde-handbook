@@ -143,8 +143,22 @@ A/B를 만들다 보면 provider 어댑터 층이 자연히 추출된다. 이걸
 
 | 주차 | 시간 | 할 일 |
 |---|---|---|
-| W17 | 10h | **오픈소스 기여** — OpenAI Cookbook 또는 GoogleCloudPlatform/generative-ai에 PR 1건. 영문 이력서 |
+| W17 | 10h | **오픈소스 기여** — OpenAI Cookbook 또는 GoogleCloudPlatform/generative-ai에 PR 1건. 영문 이력서. **GitHub 프로필 정리** (아래) |
 | W18 | 10h | 디스커버리 세션 대본, 케이스스터디 훈련, 영어 기술 면접 리허설 |
+
+### GitHub 프로필 정리 (W17에 반드시 수행)
+
+리크루터는 저장소가 아니라 **프로필 페이지**에 착지한다. 지금 개인 계정(`donnaknew`)에는
+`Leetcode`, `AlgorithmStudy`, `test`, `DjangoTuto`, `programmingProject` 같은 오래된 연습 저장소가
+공개되어 있다. 지원 전에 정리하지 않으면 이것들이 첫인상이 된다.
+
+- [ ] 오래된 연습 저장소 archive 처리 또는 private 전환
+- [ ] Project A·B·C를 프로필에 **pin**
+- [ ] 프로필 README 작성 — 한 문단으로 "무엇을 하는 사람인지"
+- [ ] 개인 계정 ↔ `yhkdsl` 조직 저장소 노출 정리 (조직 저장소는 개인 프로필에 잘 드러나지 않음)
+
+> 주의: 포트폴리오 프로젝트 A·B·C를 어디에 둘지는 이 시점 전에 결정해야 한다.
+> 조직(`yhkdsl`) 아래 두면 개인 프로필 노출이 약하고, 개인 계정에 두면 기존 저장소들과 섞인다.
 
 ### 왜 Cookbook 기여인가 (추측 아님, JD 인용)
 

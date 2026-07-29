@@ -14,9 +14,11 @@
 "AI 엔지니어가 되려면 이런 걸 배워야 한다더라"가 아니라, 서울에 실제로 열려 있는 공고 4건을
 문장 단위로 분해해서 거기 있는 것만 다룬다. 거기 없는 것은 의도적으로 뺀다.
 
+**📖 온라인으로 읽기 → https://yhkdsl.github.io/genai-fde-handbook/**
+
 ## 시작하기
 
-1. **[docs/index.html](docs/index.html)** — 목차와 진행 상황
+1. **[온라인 목차](https://yhkdsl.github.io/genai-fde-handbook/)** — 진행 상황과 챕터 (체크박스는 브라우저에 저장됨)
 2. **[PROJECT.md](PROJECT.md)** — 이 프로젝트의 헌법. 원칙, 타겟, 비목표
 3. **[ROADMAP.md](ROADMAP.md)** — 18주 주차별 계획과 시간 배분
 4. **[jd/](jd/)** — 근거가 되는 채용 공고 원문 4건 (수집일 명시)
