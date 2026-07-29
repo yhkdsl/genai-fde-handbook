@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GenAI FDE Handbook — Senior Backend Engineer → Forward Deployed Engineer</title>
+<link rel="stylesheet" href="assets/handbook.css">
+</head>
+<body>
+
+<header class="masthead">
+  <span class="mark">GenAI FDE Handbook</span>
+  <span class="sep"></span>
+  <a href="https://github.com/">GitHub</a>
+  <button id="themeToggle" type="button">DARK</button>
+</header>
+
+<div class="wrap">
+
+<div class="chapter-head">
+  <div class="kicker">18주 · 180시간 · 2026-08-03 → 12-06</div>
+  <h1>Senior Backend Engineer<br>→ GenAI Forward Deployed Engineer</h1>
+  <p class="sub">추측이 아니라 서울에 실제로 열려 있는 채용 공고 4건의 원문을 근거로 만든 전환 계획.
+  읽는 분량이 아니라 배포된 증거를 목표로 한다.</p>
+  <div class="chapter-meta">
+    <span><b>1순위</b> Google Cloud — GenAI FDE, Seoul</span>
+    <span><b>2순위</b> OpenAI — FDE, Seoul</span>
+    <span><b>1차 지원</b> 2026년 10월 중순</span>
+  </div>
+</div>
+
+<div class="prose">
+
+<div class="stats">
+  <div class="stat"><div class="k">총 예산</div><div class="v">180<span style="font-size:.6em">h</span></div></div>
+  <div class="stat"><div class="k">프로젝트 배정</div><div class="v sig">120<span style="font-size:.6em">h</span></div></div>
+  <div class="stat"><div class="k">학습 배정</div><div class="v">40<span style="font-size:.6em">h</span></div></div>
+  <div class="stat"><div class="k">주당</div><div class="v ev">10<span style="font-size:.6em">h</span></div></div>
+</div>
+
+<div class="note signal">
+  <span class="label">이 핸드북의 원칙</span>
+  <p><strong>읽은 것은 증거가 아니다.</strong> 배포된 URL, 커밋 히스토리, 측정된 수치, 머지된 PR만 증거다.
+  그래서 180시간 중 <strong>120시간이 프로젝트에</strong> 배정되어 있고, 챕터는 그 프로젝트를 만들기 위해 필요한 만큼만 존재한다.</p>
+  <p>새 챕터를 추가하려면 <em>"어느 공고의 어느 문장에 대응하는가"</em>를 답할 수 있어야 한다.
+  답하지 못하면 그 챕터는 쓰지 않는다. 전체 원칙은 <a href="https://github.com/">PROJECT.md</a> 참조.</p>
+</div>
+
+<h2><span class="num">§ 1</span>진행 상황</h2>
+
+<div class="progress" data-progress-for="phase-track">
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <div class="progress-label">0 / 0 완료 · 0%</div>
+</div>
+
+<div id="phase-track">
+<ul class="checklist">
+  <li><label><input type="checkbox" data-id="p0"><span><strong>Phase 0 · 기반</strong> (W1–2, 20h) — Cloud Run에 FastAPI 배포, Vertex AI에서 Gemini 첫 호출</span></label></li>
+  <li><label><input type="checkbox" data-id="p1"><span><strong>Phase 1 · LLM 실무 핵심</strong> (W3–4, 20h) — 구조화 출력·툴 콜링·비용 계측기</span></label></li>
+  <li><label><input type="checkbox" data-id="p2"><span><strong>Phase 2 · Project A</strong> (W5–10, 60h) — 하이브리드 RAG를 GCP에 배포 + eval 리포트 <span class="pill p1">최우선</span></span></label></li>
+  <li><label><input type="checkbox" data-id="apply"><span><strong>1차 지원</strong> — 2026년 10월 중순. 준비 완료를 기다리지 않는다</span></label></li>
+  <li><label><input type="checkbox" data-id="p3"><span><strong>Phase 3 · Project B</strong> (W11–16, 60h) — 멀티에이전트 + MCP 서버 + 트레이싱</span></label></li>
+  <li><label><input type="checkbox" data-id="p4"><span><strong>Phase 4 · 포트폴리오</strong> (W17–18, 20h) — Cookbook PR, 케이스스터디, 면접 리허설</span></label></li>
+</ul>
+</div>
+
+<h2><span class="num">§ 2</span>챕터</h2>
+
+<h3>Phase 0 — 기반 <span style="color:var(--ink-3);font-weight:400">· W1–W2 · 20h</span></h3>
+<div class="cards">
+  <a class="card" href="ch00-role-analysis.html">
+    <div class="no">CH 00 · 완성</div>
+    <h3>FDE라는 직무</h3>
+    <p>실제 공고 4건 원문 분해. 왜 Google FDE가 1순위인가. FDE처럼 생각하는 법.</p>
+  </a>
+  <div class="card pending">
+    <div class="no">CH 01 · 예정</div>
+    <h3>Python for Senior Java Engineers</h3>
+    <p>문법서가 아닌 매핑표. Spring DI → FastAPI Depends, CompletableFuture → asyncio.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 02 · 예정</div>
+    <h3>GCP · Vertex AI 기반</h3>
+    <p>IAM, Cloud Run 배포, Gemini 첫 호출. Google JD min③의 출발점.</p>
+  </div>
+</div>
+
+<h3>Phase 1 — LLM 실무 핵심 <span style="color:var(--ink-3);font-weight:400">· W3–W4 · 20h</span></h3>
+<div class="cards">
+  <div class="card pending">
+    <div class="no">CH 03 · 예정</div>
+    <h3>LLM 실무 핵심</h3>
+    <p>토큰·컨텍스트·temperature·임베딩. Transformer 내부는 다루지 않는다 — JD에 없다.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 04 · 예정</div>
+    <h3>구조화 출력과 툴 콜링</h3>
+    <p>Structured Output, Function/Tool Calling, 그리고 비용·지연 계측 래퍼.</p>
+  </div>
+</div>
+
+<h3>Phase 2 — Project A: Hybrid RAG <span style="color:var(--ink-3);font-weight:400">· W5–W10 · 60h</span></h3>
+<div class="cards">
+  <div class="card pending">
+    <div class="no">CH 05 · 예정</div>
+    <h3>RAG 완전 분해</h3>
+    <p>왜 파인튜닝이 아닌가부터. 임베딩·유사도·청킹·메타데이터를 원리부터.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 06 · 예정</div>
+    <h3>하이브리드 검색과 Reranker</h3>
+    <p>BM25 + dense, 정형/비정형 라우팅, reranker. JD min④의 본체.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 07 · 예정</div>
+    <h3>엔터프라이즈 RAG — 권한과 보안</h3>
+    <p>가장 어려운 건 검색이 아니라 접근제어다. 9년 백엔드가 무기가 되는 챕터.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 08 · 예정</div>
+    <h3>Evaluation</h3>
+    <p>골든셋, 정확도·근거율·환각률. 세 공고 전부에 있는데 아무도 안 가르치는 것.</p>
+  </div>
+</div>
+
+<h3>Phase 3 — Project B: Agents + MCP <span style="color:var(--ink-3);font-weight:400">· W11–W16 · 60h</span></h3>
+<div class="cards">
+  <div class="card pending">
+    <div class="no">CH 09 · 예정</div>
+    <h3>MCP</h3>
+    <p>Server·Client·Transport·Lifecycle·Tool Discovery. 직접 서버를 만든다.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 10 · 예정</div>
+    <h3>멀티에이전트와 ADK</h3>
+    <p>ReAct, self-reflection, 위계 위임. Google JD preferred에 명시된 항목들.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 11 · 예정</div>
+    <h3>Observability와 비용</h3>
+    <p>OpenTelemetry 트레이싱, tokens/sec, cost-per-request, p95 latency.</p>
+  </div>
+</div>
+
+<h3>Phase 4 — 포트폴리오 <span style="color:var(--ink-3);font-weight:400">· W17–W18 · 20h</span></h3>
+<div class="cards">
+  <div class="card pending">
+    <div class="no">CH 12 · 예정</div>
+    <h3>Customer Discovery와 ROI</h3>
+    <p>고객의 말을 문제로 번역하기. ROI 계산. 다른 자료에 거의 없는 부분.</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 13 · 예정</div>
+    <h3>포트폴리오와 이력서</h3>
+    <p>영문 이력서, 저장소 구성, 오픈소스 기여(Cookbook PR).</p>
+  </div>
+  <div class="card pending">
+    <div class="no">CH 14 · 예정</div>
+    <h3>면접</h3>
+    <p>5단계 루프별 대비. 특히 deployment case study 반복 훈련.</p>
+  </div>
+</div>
+
+<h2><span class="num">§ 3</span>포트폴리오 프로젝트</h2>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>프로젝트</th><th>내용</th><th>겨냥하는 JD 문장</th><th>시간</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>A. Enterprise Hybrid RAG</strong></td>
+  <td>정형(13F 보유종목) + 비정형(공시 문서) 하이브리드 RAG. 권한 필터, eval, GCP 배포</td>
+  <td>Google min ③④ <em>"structured and unstructured ... both vector databases and RAG-like architectures"</em></td>
+  <td>60h</td>
+</tr>
+<tr>
+  <td><strong>B. Multi-Agent + MCP</strong></td>
+  <td>ADK 기반 위계 위임 멀티에이전트, 자작 MCP 서버, OTel 트레이싱, ROI 산출</td>
+  <td>Google resp ①③ <em>"multi-agent systems, MCP servers"</em>, <em>"evaluation pipelines and observability"</em></td>
+  <td>60h</td>
+</tr>
+<tr>
+  <td><strong>C. Provider Adapter</strong></td>
+  <td>A·B에서 추출되는 OpenAI/Vertex 양립 어댑터. 별도 공개</td>
+  <td>OpenAI FDE <em>"codify working patterns into ... building blocks that others can use"</em></td>
+  <td>부산물</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<div class="note warn">
+  <span class="label">하지 않는 것</span>
+  <p>모델 파인튜닝 연구 · Transformer 내부 수학 · LeetCode 알고리즘 훈련 ·
+  분량을 위한 분량. <strong>그리고 AI가 생성한 학습 노트를 포트폴리오라고 부르는 것.</strong>
+  이 저장소는 학습 기록이고, 이력서에 링크되는 것은 A·B·C 프로젝트 저장소다.</p>
+</div>
+
+<h2><span class="num">§ 4</span>근거 자료</h2>
+
+<p>모든 판단은 아래 공고 원문에서 나왔다. 공고는 내려가면 사라지므로 수집일과 함께 저장소에 보존했다.</p>
+
+<div class="table-scroll">
+<table>
+<thead><tr><th>공고</th><th>수집일</th><th>핵심 경력 요건</th><th>지위</th></tr></thead>
+<tbody>
+<tr><td>Google Cloud — GenAI FDE, Seoul (Korean, English)</td><td>2026-07-29</td><td>Python 개발 2년</td><td><span class="pill p1">1순위</span></td></tr>
+<tr><td>OpenAI — Forward Deployed Engineer, Seoul</td><td>2026-07-29</td><td>엔지니어링·기술 배포 5년+</td><td><span class="pill p2">2순위</span></td></tr>
+<tr><td>OpenAI — AI Deployment Engineer, Seoul</td><td>2026-07-29</td><td>technical consulting 6년+</td><td><span class="pill p3">장기</span></td></tr>
+<tr><td>OpenAI — AI Deployment Engineer, Codex | Korea</td><td>2026-07-29</td><td>post-sales 8년+</td><td><span class="pill px">관찰</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="chapter-nav">
+  <span><a href="ch00-role-analysis.html">Chapter 0부터 시작 →</a></span>
+  <span style="color:var(--ink-3)">v0.1 · 2026-07-29</span>
+</div>
+
+</div><!-- /prose -->
+</div><!-- /wrap -->
+
+<script src="assets/handbook.js"></script>
+</body>
+</html>
